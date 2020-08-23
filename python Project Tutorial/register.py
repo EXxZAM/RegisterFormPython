@@ -3,6 +3,12 @@ import tkinter.messagebox as messagebox
 import sqlite3
 import os
 from PIL import ImageTk, Image
+import smtplib
+import imghdr
+from email.message import EmailMessage
+import random
+from tkinter import simpledialog
+
 
 root = Tk()
 root.geometry('1000x500')
@@ -36,22 +42,44 @@ def register():
     password2 = retrypassE.get()
 
     def add_user():
-        conn = sqlite3.connect('users.db')
-        c = conn.cursor()
-        c.execute('INSERT INTO user_info VALUES (:Username, :Userlastname, :Useremail, :Userpassword)',
-            {
-                'Username': name,
-                'Userlastname': lastname,
-                'Useremail': email,
-                'Userpassword': password,
-                
-            })
+        confirmation_code = str(random.randint(1000,4000))
+        sender_email = "youremail"
+        rec_email = email
+        password = 'youremailpassword'
 
-        conn.commit()
-        conn.close()
-        messagebox.showinfo('Warning!','You registered succesfully')
-        root.destroy()
-        os.system('python login.py')
+        msg = EmailMessage()
+        msg['Subject'] = 'Confirmation code'
+        msg['From'] = sender_email
+        msg['To'] = rec_email
+        msg.set_content("The Confirmation Code Is {}".format(confirmation_code))
+
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+            smtp.login(sender_email, password)
+            smtp.send_message(msg)
+
+        while True:
+            email_conf = simpledialog.askstring("input string", "please enter the confirmation code sent to your email(also check spam folder)")
+            if email_conf == confirmation_code:
+                conn = sqlite3.connect('users.db')
+                c = conn.cursor()
+                c.execute('INSERT INTO user_info VALUES (:Username, :Userlastname, :Useremail, :Userpassword)',
+                    {
+                        'Username': name,
+                        'Userlastname': lastname,
+                        'Useremail': email,
+                        'Userpassword': password,
+                        
+                    })
+
+                conn.commit()
+                conn.close()
+                messagebox.showinfo('Warning!','You registered succesfully')
+                root.destroy()
+                os.system('python login.py')
+                break
+            else:
+                messagebox.showinfo('Warning!','The code you entered is incorrect try again')
+                
 
     # Conditions
 
